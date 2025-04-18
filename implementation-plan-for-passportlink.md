@@ -1,5 +1,4 @@
-
-## **🚩 Phase 1: Project Initialization & Basic Setup**
+## **✅ Phase 1: Project Initialization & Basic Setup**
 
 ### **Tasks:**
 
@@ -23,7 +22,7 @@
 
 ---
 
-## **🚩 Phase 2: Core Authentication Framework (Passport.js)**
+## **✅ Phase 2: Core Authentication Framework (Passport.js)**
 
 ### **Tasks:**
 
@@ -47,7 +46,7 @@
 
 ---
 
-## **🚩 Phase 3: OAuth Providers Integration**
+## **✅ Phase 3: OAuth Providers Integration**
 
 ### **Tasks:**
 
@@ -69,7 +68,7 @@
 
 ---
 
-## **🚩 Phase 4: Multi-Provider User Linking Logic**
+## **✅ Phase 4: Multi-Provider User Linking Logic**
 
 ### **Tasks:**
 
@@ -87,7 +86,7 @@
 
     * Handle email verification cases carefully.
 
-  * Enforce uniqueness constraints on providers’ IDs and emails.
+  * Enforce uniqueness constraints on providers' IDs and emails.
 
 ### **Deliverables:**
 
@@ -97,7 +96,7 @@
 
 ---
 
-## **🚩 Phase 5: API Endpoints Implementation**
+## **✅ Phase 5: API Endpoints Implementation**
 
 ### **Tasks:**
 
@@ -121,7 +120,35 @@
 
 ---
 
-## **🚩 Phase 6: Security Enhancements**
+## **✅ Phase 6: API Documentation (Swagger)**
+
+### **Tasks:**
+
+* Install and configure Swagger UI and Swagger JSDoc dependencies.
+
+* Document all API endpoints with JSDoc annotations:
+  
+  * Add detailed descriptions, parameters, request bodies, and response schemas.
+  
+  * Include authentication requirements for each endpoint.
+  
+  * Document possible error responses and status codes.
+
+* Create a Swagger UI endpoint for interactive API testing and exploration.
+
+* Ensure documentation is comprehensive for frontend developers to integrate with.
+
+### **Deliverables:**
+
+* Complete Swagger documentation for all API endpoints.
+
+* Interactive Swagger UI available for testing and exploration.
+
+* Documented authentication flows with examples.
+
+---
+
+## **🟡 Phase 7: Security Enhancements**
 
 ### **Tasks:**
 
@@ -141,7 +168,7 @@
 
 ---
 
-## **🚩 Phase 7: Deployment & Environment Configuration**
+## **🚩 Phase 8: Deployment & Environment Configuration**
 
 ### **Tasks:**
 
@@ -151,7 +178,7 @@
 
 * Recommend session store for production environment (e.g., MongoDB via `connect-mongo`).
 
-* Add proxy considerations for production deployments (Express’s `trust proxy`).
+* Add proxy considerations for production deployments (Express's `trust proxy`).
 
 ### **Deliverables:**
 
@@ -161,7 +188,7 @@
 
 ---
 
-## **🚩 Phase 8: Extensibility & Customization**
+## **🚩 Phase 9: Extensibility & Customization**
 
 ### **Tasks:**
 
@@ -179,7 +206,7 @@
 
 ---
 
-## **🚩 Phase 9: Testing and Validation**
+## **🚩 Phase 10: Testing and Validation**
 
 ### **Tasks:**
 
@@ -197,7 +224,7 @@
 
 ---
 
-## **🚩 Phase 10: Final Documentation & Packaging (NPM)**
+## **🚩 Phase 11: Final Documentation & Packaging (NPM)**
 
 ### **Tasks:**
 
@@ -225,16 +252,17 @@
 
 | Phase | Description | Outcome |
 | ----- | ----- | ----- |
-| 1 | Initialization & Setup | Project initialized, dependencies installed |
-| 2 | Core Passport Integration | Passport and MongoDB integrated |
-| 3 | OAuth Providers | OAuth strategies and callbacks configured |
-| 4 | User Linking Logic | Multi-provider linking implemented |
-| 5 | API Endpoints | RESTful APIs operational and secure |
-| 6 | Security | Secure sessions, HTTPS, CSRF, XSS prevention |
-| 7 | Deployment | Production-ready config and documentation |
-| 8 | Extensibility | Extensible architecture clearly documented |
-| 9 | Testing | Comprehensive automated/manual tests passed |
-| 10 | Final Docs & NPM Package | Published, documented, ready for developers |
+| 1 ✅ | Initialization & Setup | Project initialized, dependencies installed |
+| 2 ✅ | Core Passport Integration | Passport and MongoDB integrated |
+| 3 ✅ | OAuth Providers | OAuth strategies and callbacks configured |
+| 4 ✅ | User Linking Logic | Multi-provider linking implemented |
+| 5 ✅ | API Endpoints | RESTful APIs operational and secure |
+| 6 ✅ | API Documentation (Swagger) | Interactive API documentation with Swagger |
+| 7 🟡 | Security | Secure sessions, HTTPS, CSRF, XSS prevention |
+| 8 | Deployment | Production-ready config and documentation |
+| 9 | Extensibility | Extensible architecture clearly documented |
+| 10 | Testing | Comprehensive automated/manual tests passed |
+| 11 | Final Docs & NPM Package | Published, documented, ready for developers |
 
 ---
 
