@@ -4,6 +4,8 @@ const session = require("express-session");
 const cors = require("cors");
 const passport = require("./middleware/auth");
 const config = require("./config");
+const authRoutes = require("./routes/auth");
+const { swaggerUi, swaggerDocs, swaggerUiOptions } = require("./utils/swagger");
 
 const app = express();
 
@@ -46,6 +48,16 @@ mongoose
     process.exit(1);
   });
 
+// Register routes
+app.use("/auth", authRoutes);
+
+// Swagger documentation
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerDocs, swaggerUiOptions)
+);
+
 // Basic route for testing
 app.get("/", (req, res) => {
   res.json({ message: "PassportLink API is running" });
@@ -65,6 +77,7 @@ const PORT = config.server.port;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   console.log(`Environment: ${config.server.env}`);
+  console.log(`API documentation available at: ${config.urls.base}/api-docs`);
 });
 
 module.exports = app;

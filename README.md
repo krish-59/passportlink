@@ -228,4 +228,92 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details. 
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## How to Run the Project
+
+### Prerequisites
+- Node.js (v18.17.0 or higher)
+- MongoDB running locally or accessible via connection string
+
+### Setup
+
+1. Clone the repository:
+```bash
+git clone https://github.com/krish-59/passportlink.git
+cd passportlink
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Configure environment variables:
+   - Copy the `.env.example` file to `.env` (or create a new `.env` file)
+   - Update the values in `.env` with your configuration:
+     - Set the MongoDB connection string
+     - Configure session secrets
+     - Add OAuth credentials for the providers you want to use
+
+```
+# Server Configuration
+PORT=3000
+NODE_ENV=development
+
+# MongoDB Configuration
+MONGODB_URI=mongodb://localhost:27017/passportlink
+
+# Session Configuration
+SESSION_SECRET=your_session_secret_here
+SESSION_COOKIE_NAME=connect.sid
+SESSION_COOKIE_SECURE=false
+SESSION_COOKIE_SAMESITE=lax
+
+# Base URLs
+BASE_URL=http://localhost:3000
+FRONTEND_URL=http://localhost:8080
+
+# OAuth Provider Credentials
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+GITHUB_CLIENT_ID=your_github_client_id
+GITHUB_CLIENT_SECRET=your_github_client_secret
+# Add more provider credentials as needed
+```
+
+4. Start the server:
+
+**Production:**
+```bash
+npm start
+```
+
+**Development (with auto-reload):**
+```bash
+npm run dev
+```
+
+### Testing the API
+
+Once the server is running:
+
+1. Access the API documentation at: `http://localhost:3000/api-docs`
+2. Test authentication flows with the available endpoints:
+   - `/auth/providers` - Get a list of configured providers
+   - `/auth/{provider}` - Initiate login with a provider
+   - `/auth/user` - Get the current user's profile
+   - `/auth/logout` - Log out the current user
+
+### Setting Up OAuth Providers
+
+For each OAuth provider you wish to use:
+
+1. Create a developer account/application with the provider
+2. Configure the callback URLs in the provider's dashboard:
+   - Google: `http://localhost:3000/auth/google/callback`
+   - GitHub: `http://localhost:3000/auth/github/callback`
+   - Facebook: `http://localhost:3000/auth/facebook/callback`
+   - Microsoft: `http://localhost:3000/auth/microsoft/callback`
+   - LinkedIn: `http://localhost:3000/auth/linkedin/callback`
+3. Add the client ID and secret to your `.env` file 
