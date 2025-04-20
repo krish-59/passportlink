@@ -9,6 +9,17 @@ const { swaggerUi, swaggerDocs, swaggerUiOptions } = require("./utils/swagger");
 
 const app = express();
 
+// Configure CORS first
+app.use(
+  cors({
+    origin: [config.urls.frontend, config.urls.base],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Accept"],
+    exposedHeaders: ["Set-Cookie"],
+  })
+);
+
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -19,8 +30,10 @@ app.use(
     secret: config.session.secret,
     name: config.session.cookieName,
     cookie: {
-      secure: config.session.cookieSecure,
-      sameSite: config.session.cookieSameSite,
+      secure: false, // Set to false for development HTTP
+      sameSite: "lax", // Change to 'lax' for development
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
     },
     resave: false,
     saveUninitialized: false,
@@ -41,16 +54,6 @@ mongoose
     console.error("MongoDB connection error:", err);
     process.exit(1);
   });
-
-// Configure CORS for all routes
-app.use(
-  cors({
-    origin: [config.urls.frontend, config.urls.base],
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "Accept"],
-  })
-);
 
 // Register routes
 app.use("/auth", authRoutes);

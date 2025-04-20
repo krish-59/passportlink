@@ -289,21 +289,47 @@ router.get("/user", (req, res) => {
  *               $ref: '#/components/schemas/Error'
  */
 router.post("/logout", (req, res) => {
+  // Set a timeout to ensure the response eventually sends
+  const timeout = setTimeout(() => {
+    console.log("Logout timeout triggered - forcing response");
+    return res.status(200).json({
+      message: "Logout completed (timeout)",
+      forced: true,
+    });
+  }, 5000); // 5 second timeout
+
   try {
+    console.log("Logout requested, auth status:", req.isAuthenticated());
+
     if (!req.isAuthenticated()) {
-      const error = new Error("Not authenticated");
-      error.status = 401;
-      throw error;
+      clearTimeout(timeout);
+      return res.status(200).json({ message: "Not logged in" });
     }
 
     req.logout((err) => {
+      clearTimeout(timeout); // Clear the timeout as we got a response
+
       if (err) {
-        throw err;
+        console.error("Logout error:", err);
+        return res.status(500).json({
+          error: "Error during logout process",
+          message: err.message,
+        });
       }
-      res.json({ message: "Successfully logged out" });
+
+      console.log("Authentication status after logout:", req.isAuthenticated());
+      return res.status(200).json({
+        message: "Successfully logged out",
+        authenticated: req.isAuthenticated(),
+      });
     });
   } catch (err) {
-    handleError(err, res);
+    clearTimeout(timeout);
+    console.error("Unhandled logout error:", err);
+    return res.status(500).json({
+      error: "Internal server error during logout",
+      message: err.message,
+    });
   }
 });
 
