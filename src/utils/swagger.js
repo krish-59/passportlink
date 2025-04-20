@@ -145,10 +145,18 @@ const swaggerDocs = swaggerJsDoc(swaggerOptions);
 const swaggerUiOptions = {
   explorer: true,
   swaggerOptions: {
-    docExpansion: "list",
+    persistAuthorization: true,
+    displayRequestDuration: true,
     filter: true,
-    showRequestDuration: true,
+    tryItOutEnabled: true,
+    syntaxHighlight: {
+      theme: "monokai",
+    },
+    docExpansion: "list",
+    deepLinking: true,
   },
+  customCss: ".swagger-ui .topbar { display: none }",
+  customSiteTitle: "PassportLink API Documentation",
 };
 
 module.exports = {

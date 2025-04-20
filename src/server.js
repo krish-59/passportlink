@@ -12,12 +12,6 @@ const app = express();
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(
-  cors({
-    origin: config.urls.frontend,
-    credentials: true,
-  })
-);
 
 // Session middleware
 app.use(
@@ -48,14 +42,36 @@ mongoose
     process.exit(1);
   });
 
+// Configure CORS for all routes
+app.use(
+  cors({
+    origin: [config.urls.frontend, config.urls.base],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Accept"],
+  })
+);
+
 // Register routes
 app.use("/auth", authRoutes);
 
-// Swagger documentation
+// Swagger documentation with custom options
+const swaggerCustomOptions = {
+  ...swaggerUiOptions,
+  swaggerOptions: {
+    ...swaggerUiOptions.swaggerOptions,
+    url: `${config.urls.base}/api-docs/swagger.json`,
+  },
+};
+
+// Serve Swagger documentation
+app.get("/api-docs/swagger.json", (req, res) => {
+  res.json(swaggerDocs);
+});
 app.use(
   "/api-docs",
   swaggerUi.serve,
-  swaggerUi.setup(swaggerDocs, swaggerUiOptions)
+  swaggerUi.setup(swaggerDocs, swaggerCustomOptions)
 );
 
 // Basic route for testing
