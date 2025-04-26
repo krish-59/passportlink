@@ -94,13 +94,7 @@ const handlePassportAuth = (provider, options, isLink = false) => {
  *       404:
  *         description: Provider not configured or not found
  */
-const supportedProviders = [
-  "google",
-  "github",
-  "facebook",
-  "microsoft",
-  "linkedin",
-];
+const supportedProviders = ["google", "github", "facebook", "linkedin"];
 supportedProviders.forEach((provider) => {
   router.get(
     `/${provider}`,
@@ -139,7 +133,7 @@ function getProviderScope(provider) {
       case "microsoft":
         return ["profile", "email", "openid"];
       case "linkedin":
-        return ["r_emailaddress", "r_liteprofile"];
+        return ["openid", "profile", "email"];
       default:
         return ["profile", "email"];
     }
@@ -179,9 +173,178 @@ supportedProviders.forEach((provider) => {
         };
 
         if (req.isAuthenticated()) {
+          console.log("========== AUTHENTICATED ==========");
           passport.authorize(provider, authOptions)(req, res, next);
         } else {
-          passport.authenticate(provider, authOptions)(req, res, next);
+          console.log("========== NOT AUTHENTICATED ==========");
+
+          // Special handling for LinkedIn due to API changes
+          if (provider === "linkedin") {
+            console.log("Using custom LinkedIn callback handler");
+            const axios = require("axios");
+            const qs = require("querystring");
+            const User = require("../models/User");
+
+            // Extract the authorization code from the callback URL
+            const { code } = req.query;
+            if (!code) {
+              return res.redirect(config.urls.frontend + "/auth/failure");
+            }
+
+            // Exchange the code for an access token
+            const exchangeCodeForToken = async () => {
+              try {
+                console.log("Exchanging code for token...");
+                const tokenResponse = await axios.post(
+                  "https://www.linkedin.com/oauth/v2/accessToken",
+                  qs.stringify({
+                    grant_type: "authorization_code",
+                    code,
+                    redirect_uri: `${config.urls.base}/auth/linkedin/callback`,
+                    client_id: config.oauth.linkedin.clientID,
+                    client_secret: config.oauth.linkedin.clientSecret,
+                  }),
+                  {
+                    headers: {
+                      "Content-Type": "application/x-www-form-urlencoded",
+                    },
+                  }
+                );
+
+                const { access_token, expires_in } = tokenResponse.data;
+                console.log("Token received:", access_token ? "YES" : "NO");
+
+                // Fetch user profile from LinkedIn API
+                console.log("Fetching user profile from LinkedIn...");
+                const userInfoResponse = await axios.get(
+                  "https://api.linkedin.com/v2/userinfo",
+                  {
+                    headers: {
+                      Authorization: `Bearer ${access_token}`,
+                    },
+                  }
+                );
+
+                const profile = userInfoResponse.data;
+                console.log(
+                  "Profile data received:",
+                  JSON.stringify(profile, null, 2)
+                );
+
+                // Extract profile information
+                const linkedinId = profile.sub;
+                const email = profile.email;
+                const emailVerified = profile.email_verified || false;
+                const name =
+                  profile.name ||
+                  `${profile.given_name || ""} ${
+                    profile.family_name || ""
+                  }`.trim() ||
+                  "LinkedIn User";
+                const profilePhoto = profile.picture;
+
+                // Find or create user
+                let user = await User.findOne({
+                  "providers.provider": "linkedin",
+                  "providers.providerId": linkedinId,
+                });
+
+                if (user) {
+                  // Login the existing user
+                  req.login(user, (err) => {
+                    if (err) {
+                      console.error("Login error:", err);
+                      return res.redirect(
+                        config.urls.frontend + "/auth/failure"
+                      );
+                    }
+                    return res.redirect(config.urls.frontend + "/auth/success");
+                  });
+                  return;
+                }
+
+                // Check for existing user with same email
+                if (email && emailVerified) {
+                  user = await User.findOne({ email });
+
+                  if (user) {
+                    // Add LinkedIn provider to existing user
+                    user.providers.push({
+                      provider: "linkedin",
+                      providerId: linkedinId,
+                      displayName: name,
+                      email: email,
+                      profilePhoto: profilePhoto,
+                      accessToken: access_token,
+                      refreshToken: null,
+                      linkedAt: new Date(),
+                    });
+
+                    await user.save();
+
+                    // Login the user
+                    req.login(user, (err) => {
+                      if (err) {
+                        console.error("Login error:", err);
+                        return res.redirect(
+                          config.urls.frontend + "/auth/failure"
+                        );
+                      }
+                      return res.redirect(
+                        config.urls.frontend + "/auth/success"
+                      );
+                    });
+                    return;
+                  }
+                }
+
+                // Create new user
+                const newUser = new User({
+                  name: name,
+                  email: email || `user-${linkedinId}@linkedin.account`,
+                  emailVerified: emailVerified,
+                  providers: [
+                    {
+                      provider: "linkedin",
+                      providerId: linkedinId,
+                      displayName: name,
+                      email: email,
+                      profilePhoto: profilePhoto,
+                      accessToken: access_token,
+                      refreshToken: null,
+                      linkedAt: new Date(),
+                    },
+                  ],
+                });
+
+                await newUser.save();
+
+                // Login the new user
+                req.login(newUser, (err) => {
+                  if (err) {
+                    console.error("Login error:", err);
+                    return res.redirect(config.urls.frontend + "/auth/failure");
+                  }
+                  return res.redirect(config.urls.frontend + "/auth/success");
+                });
+              } catch (error) {
+                console.error("LinkedIn OAuth Error:", error.message);
+                if (error.response) {
+                  console.error("Response status:", error.response.status);
+                  console.error(
+                    "Response data:",
+                    JSON.stringify(error.response.data, null, 2)
+                  );
+                }
+                return res.redirect(config.urls.frontend + "/auth/failure");
+              }
+            };
+
+            // Execute the token exchange and profile fetch
+            exchangeCodeForToken();
+          } else {
+            passport.authenticate(provider, authOptions)(req, res, next);
+          }
         }
       } catch (err) {
         handleError(err, res);
@@ -289,42 +452,52 @@ router.get("/user", (req, res) => {
  *               $ref: '#/components/schemas/Error'
  */
 router.post("/logout", (req, res) => {
-  // Set a timeout to ensure the response eventually sends
-  const timeout = setTimeout(() => {
-    console.log("Logout timeout triggered - forcing response");
-    return res.status(200).json({
-      message: "Logout completed (timeout)",
-      forced: true,
-    });
-  }, 5000); // 5 second timeout
-
+  console.log("Logging out");
   try {
-    console.log("Logout requested, auth status:", req.isAuthenticated());
-
     if (!req.isAuthenticated()) {
-      clearTimeout(timeout);
       return res.status(200).json({ message: "Not logged in" });
     }
 
-    req.logout((err) => {
-      clearTimeout(timeout); // Clear the timeout as we got a response
-
-      if (err) {
-        console.error("Logout error:", err);
-        return res.status(500).json({
-          error: "Error during logout process",
-          message: err.message,
-        });
-      }
-
-      console.log("Authentication status after logout:", req.isAuthenticated());
-      return res.status(200).json({
-        message: "Successfully logged out",
-        authenticated: req.isAuthenticated(),
+    // Check Passport version by examining function signature
+    // req.logout.length === 0 for Passport < 0.6.0
+    // req.logout.length === 1 for Passport >= 0.6.0
+    if (req.logout.length === 0) {
+      // Old version of Passport (< 0.6.0)
+      console.log("Using Passport < 0.6.0 logout method");
+      req.logout();
+      req.session.destroy((err) => {
+        if (err) {
+          console.error("Session destroy error:", err);
+          return res
+            .status(500)
+            .json({ error: "Session destroy error", message: err.message });
+        }
+        res.clearCookie("connect.sid", { path: "/" });
+        return res.status(200).json({ message: "Logged out successfully" });
       });
-    });
+    } else {
+      // New version of Passport (>= 0.6.0)
+      console.log("Using Passport >= 0.6.0 logout method");
+      req.logout((err) => {
+        if (err) {
+          console.error("Logout error:", err);
+          return res
+            .status(500)
+            .json({ error: "Logout error", message: err.message });
+        }
+        req.session.destroy((err) => {
+          if (err) {
+            console.error("Session destroy error:", err);
+            return res
+              .status(500)
+              .json({ error: "Session destroy error", message: err.message });
+          }
+          res.clearCookie("connect.sid", { path: "/" });
+          return res.status(200).json({ message: "Logged out successfully" });
+        });
+      });
+    }
   } catch (err) {
-    clearTimeout(timeout);
     console.error("Unhandled logout error:", err);
     return res.status(500).json({
       error: "Internal server error during logout",

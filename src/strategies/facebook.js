@@ -19,6 +19,13 @@ module.exports = (passport) => {
     },
     async (req, accessToken, refreshToken, profile, done) => {
       try {
+        // Log raw provider data
+        console.log("========== FACEBOOK AUTH DATA ==========");
+        console.log("Raw profile:", JSON.stringify(profile, null, 2));
+        console.log("Access Token:", accessToken);
+        console.log("Refresh Token:", refreshToken);
+        console.log("======================================");
+
         // Extract profile information
         const email = profile.emails && profile.emails[0]?.value;
         // Facebook generally returns only verified emails

@@ -24,19 +24,20 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Session middleware
+// Session middleware with in-memory store (suitable for development)
 app.use(
   session({
     secret: config.session.secret,
     name: config.session.cookieName,
     cookie: {
       secure: false, // Set to false for development HTTP
-      sameSite: "lax", // Change to 'lax' for development
+      sameSite: "lax", // Use 'lax' for development
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
     },
-    resave: false,
-    saveUninitialized: false,
+    resave: false, // Don't save session if unmodified
+    saveUninitialized: true, // Create session for all visitors to properly handle OAuth state
+    rolling: true, // Reset expiration countdown on each response
   })
 );
 

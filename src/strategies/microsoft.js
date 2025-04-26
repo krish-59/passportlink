@@ -32,6 +32,16 @@ module.exports = (passport) => {
       done
     ) => {
       try {
+        // Log raw provider data
+        console.log("========== MICROSOFT AUTH DATA ==========");
+        console.log("Raw profile:", JSON.stringify(profile, null, 2));
+        console.log("JWT Claims:", JSON.stringify(jwtClaims, null, 2));
+        console.log("Access Token:", accessToken);
+        console.log("Refresh Token:", refreshToken);
+        console.log("Issuer:", iss);
+        console.log("Subject:", sub);
+        console.log("=========================================");
+
         // Extract profile information from claims
         const email =
           profile._json.email ||
