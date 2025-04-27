@@ -1,9 +1,8 @@
 # PassportLink
 
-[![npm version](https://img.shields.io/npm/v/passportlink.svg)](https://www.npmjs.com/package/passportlink)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-A streamlined OAuth-based Single Sign-On (SSO) solution that wraps Passport.js to provide multi-provider authentication with account linking capabilities.
+A streamlined OAuth-based Single Sign-On (SSO) solution with a custom authentication framework that provides multi-provider authentication with account linking capabilities.
 
 ## Features
 
@@ -14,12 +13,6 @@ A streamlined OAuth-based Single Sign-On (SSO) solution that wraps Passport.js t
 - **Secure Sessions**: Implements best practices for session and cookie management
 - **Configurable**: Easily adjust settings via environment variables or initialization options
 - **Extensible**: Add custom providers or extend user schema
-
-## Installation
-
-```bash
-npm install passportlink
-```
 
 ## Quick Start
 
@@ -61,7 +54,7 @@ FRONTEND_URL=http://localhost:8080
 const express = require('express');
 const mongoose = require('mongoose');
 const session = require('express-session');
-const { PassportLink } = require('passportlink');
+const customAuth = require('./lib/auth');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -76,16 +69,12 @@ app.use(session({
   saveUninitialized: false
 }));
 
-// Initialize PassportLink
-const passportLink = new PassportLink(app, {
-  providers: ['google', 'github'], // Include only the providers you want to use
-  callbackURL: `${process.env.BASE_URL}/auth/:provider/callback`,
-  successRedirect: `${process.env.FRONTEND_URL}/dashboard`,
-  failureRedirect: `${process.env.FRONTEND_URL}/login`
-});
+// Initialize custom auth framework
+app.use(customAuth.initialize());
 
-// Mount PassportLink routes
-app.use(passportLink.routes());
+// Mount auth routes
+const authRoutes = require('./routes/auth');
+app.use('/auth', authRoutes);
 
 // Your other routes
 app.get('/', (req, res) => {
@@ -132,7 +121,7 @@ async function getUserProfile() {
 When a user is already logged in, they can link additional accounts:
 
 ```html
-<a href="/auth/facebook">Connect Facebook</a>
+<a href="/auth/link/facebook">Connect Facebook</a>
 ```
 
 ### Unlinking Accounts
@@ -158,61 +147,8 @@ async function unlinkProvider(provider) {
 | `/auth/user` | GET | Returns the authenticated user's profile |
 | `/auth/logout` | POST | Logs out the current user |
 | `/auth/unlink/:provider` | GET | Unlinks the specified provider from the user's account |
-
-## Configuration Options
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| `providers` | Array of enabled OAuth providers | All providers |
-| `callbackURL` | OAuth callback URL template | `/auth/:provider/callback` |
-| `successRedirect` | Redirect URL after successful authentication | `/` |
-| `failureRedirect` | Redirect URL after failed authentication | `/login` |
-| `sessionDuration` | Session lifetime in milliseconds | `null` (browser session) |
-| `autoLinkByEmail` | Enable automatic account linking by email | `false` |
-| `storeSessions` | Store sessions in MongoDB | `true` in production |
-
-## Advanced Customization
-
-### Adding Custom Providers
-
-```javascript
-passportLink.useProvider({
-  name: 'twitter',
-  strategy: require('passport-twitter').Strategy,
-  credentials: {
-    consumerKey: process.env.TWITTER_CONSUMER_KEY,
-    consumerSecret: process.env.TWITTER_CONSUMER_SECRET
-  },
-  callbackURL: `${process.env.BASE_URL}/auth/twitter/callback`
-});
-```
-
-### Extending User Schema
-
-```javascript
-passportLink.extendUserSchema({
-  role: {
-    type: String,
-    default: 'user'
-  },
-  preferences: {
-    type: Object,
-    default: {}
-  }
-});
-```
-
-### Event Hooks
-
-```javascript
-passportLink.on('login', (user, provider) => {
-  console.log(`User ${user.email} logged in via ${provider}`);
-});
-
-passportLink.on('link', (user, provider) => {
-  // Send notification email about new linked account
-});
-```
+| `/auth/link/:provider` | GET | Initiates linking a new provider to the current user |
+| `/auth/providers` | GET | Returns a list of configured providers |
 
 ## Security Considerations
 
@@ -221,10 +157,6 @@ passportLink.on('link', (user, provider) => {
 - Configure CORS for your frontend domain
 - Implement rate limiting on authentication endpoints
 - Keep OAuth credentials secure in environment variables
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
@@ -240,8 +172,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/krish-59/passportlink.git
-cd passportlink
+git clone https://github.com/username/auth-project.git
+cd auth-project
 ```
 
 2. Install dependencies:
@@ -262,7 +194,7 @@ PORT=3000
 NODE_ENV=development
 
 # MongoDB Configuration
-MONGODB_URI=mongodb://localhost:27017/passportlink
+MONGODB_URI=mongodb://localhost:27017/authdb
 
 # Session Configuration
 SESSION_SECRET=your_session_secret_here

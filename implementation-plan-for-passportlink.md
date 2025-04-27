@@ -4,7 +4,7 @@
 
 * Initialize a Node.js project (`npm init`).
 
-* Install basic dependencies (`express`, `passport`, `passport strategies`, `dotenv`, `mongoose`, `express-session`, `cors`).
+* Install basic dependencies (`express`, `mongoose`, `express-session`, `cors`).
 
 * Create a basic Express server structure.
 
@@ -22,15 +22,15 @@
 
 ---
 
-## **✅ Phase 2: Core Authentication Framework (Passport.js)**
+## **✅ Phase 2: Core Authentication Framework**
 
 ### **Tasks:**
 
-* Configure Passport.js:
+* Design and implement the custom authentication framework:
 
-  * Setup basic Passport middleware (`initialize`, `session`).
+  * Setup basic authentication middleware (`initialize`).
 
-  * Implement serialization and deserialization methods.
+  * Implement session handling and user storage.
 
 * Define core user schema in MongoDB (using Mongoose):
 
@@ -40,7 +40,7 @@
 
 ### **Deliverables:**
 
-* Passport.js integrated and basic user serialization working.
+* Custom authentication framework integrated with session management.
 
 * Basic user schema operational.
 
@@ -54,7 +54,7 @@
 
   * Create and configure OAuth apps at each provider.
 
-  * Set up individual Passport strategies for each provider.
+  * Implement authentication and authorization functions for each provider.
 
   * Implement OAuth callback handlers for each provider.
 
@@ -148,7 +148,7 @@
 
 ---
 
-## **🟡 Phase 7: Security Enhancements**
+## **✅ Phase 7: Security Enhancements**
 
 ### **Tasks:**
 
@@ -192,7 +192,7 @@
 
 ### **Tasks:**
 
-* Provide mechanisms to easily extend and add new OAuth providers (strategy registration hook).
+* Provide mechanisms to easily extend and add new OAuth providers (provider registration hook).
 
 * Allow customization and extensibility of user schema (additional fields via plugins/hooks).
 
@@ -202,7 +202,7 @@
 
 ### **Deliverables:**
 
-* Package easily extendable with examples and clear documentation.
+* Framework easily extendable with examples and clear documentation.
 
 ---
 
@@ -224,7 +224,7 @@
 
 ---
 
-## **🚩 Phase 11: Final Documentation & Packaging (NPM)**
+## **🚩 Phase 11: Final Documentation & Packaging**
 
 ### **Tasks:**
 
@@ -238,13 +238,11 @@
 
   * Examples of frontend integration (React, Vue, Angular examples).
 
-* Prepare package.json metadata properly (versioning, scripts, keywords, etc.).
-
-* Publish the package on NPM (or private registry).
+* Prepare for deployment or distribution.
 
 ### **Deliverables:**
 
-* Fully documented, packaged, and publishable NPM module.
+* Fully documented and ready-to-use authentication system.
 
 ---
 
@@ -253,18 +251,18 @@
 | Phase | Description | Outcome |
 | ----- | ----- | ----- |
 | 1 ✅ | Initialization & Setup | Project initialized, dependencies installed |
-| 2 ✅ | Core Passport Integration | Passport and MongoDB integrated |
-| 3 ✅ | OAuth Providers | OAuth strategies and callbacks configured |
+| 2 ✅ | Core Authentication Framework | Custom auth framework and MongoDB integrated |
+| 3 ✅ | OAuth Providers | OAuth implementations and callbacks configured |
 | 4 ✅ | User Linking Logic | Multi-provider linking implemented |
 | 5 ✅ | API Endpoints | RESTful APIs operational and secure |
 | 6 ✅ | API Documentation (Swagger) | Interactive API documentation with Swagger |
-| 7 🟡 | Security | Secure sessions, HTTPS, CSRF, XSS prevention |
+| 7 ✅ | Security | Secure sessions, HTTPS, CSRF, XSS prevention |
 | 8 | Deployment | Production-ready config and documentation |
 | 9 | Extensibility | Extensible architecture clearly documented |
 | 10 | Testing | Comprehensive automated/manual tests passed |
-| 11 | Final Docs & NPM Package | Published, documented, ready for developers |
+| 11 | Final Docs | Fully documented and ready to use |
 
 ---
 
-These phases clearly delineate the complex PRD into manageable, well-defined tasks that any AI agent or developer can follow systematically, ensuring high-quality outcomes.
+These phases clearly delineate the complex requirements into manageable, well-defined tasks that any developer can follow systematically, ensuring high-quality outcomes.
 

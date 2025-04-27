@@ -1,6 +1,8 @@
 const express = require("express");
-const passport = require("passport");
+// Remove Passport.js import as we're using custom auth
 const config = require("../config");
+// Add our custom auth framework
+const customAuth = require("../lib/auth");
 
 const router = express.Router();
 
@@ -44,28 +46,6 @@ const checkProviderEnabled = (provider) => {
 };
 
 /**
- * Wrapper for passport authenticate/authorize
- * @param {string} provider - OAuth provider name
- * @param {Object} options - Authentication options
- * @param {boolean} isLink - Whether this is a linking request
- */
-const handlePassportAuth = (provider, options, isLink = false) => {
-  return (req, res, next) => {
-    try {
-      const authMethod = isLink ? passport.authorize : passport.authenticate;
-      authMethod(provider, options)(req, res, (err) => {
-        if (err) {
-          throw err;
-        }
-        next();
-      });
-    } catch (err) {
-      handleError(err, res);
-    }
-  };
-};
-
-/**
  * @swagger
  * tags:
  *   - name: Authentication
@@ -94,7 +74,13 @@ const handlePassportAuth = (provider, options, isLink = false) => {
  *       404:
  *         description: Provider not configured or not found
  */
-const supportedProviders = ["google", "github", "facebook", "linkedin"];
+const supportedProviders = [
+  "google",
+  "github",
+  "facebook",
+  "microsoft",
+  "linkedin",
+];
 supportedProviders.forEach((provider) => {
   router.get(
     `/${provider}`,
@@ -107,9 +93,11 @@ supportedProviders.forEach((provider) => {
         };
 
         if (req.isAuthenticated()) {
-          passport.authorize(provider, authOptions)(req, res, next);
+          console.log(`Using custom framework for ${provider} authorization`);
+          customAuth.authorize(provider, authOptions)(req, res, next);
         } else {
-          passport.authenticate(provider, authOptions)(req, res, next);
+          console.log(`Using custom framework for ${provider} authentication`);
+          customAuth.authenticate(provider, authOptions)(req, res, next);
         }
       } catch (err) {
         handleError(err, res);
@@ -131,7 +119,7 @@ function getProviderScope(provider) {
       case "facebook":
         return ["email", "public_profile"];
       case "microsoft":
-        return ["profile", "email", "openid"];
+        return "profile email openid User.Read"; // Return as space-separated string
       case "linkedin":
         return ["openid", "profile", "email"];
       default:
@@ -172,182 +160,42 @@ supportedProviders.forEach((provider) => {
           failureRedirect: config.urls.frontend + "/auth/failure",
         };
 
+        // Log session information for debugging
+        console.log(
+          `Callback received for ${provider}. Session ID: ${req.session.id}`
+        );
+        console.log(`Session cookie: ${JSON.stringify(req.cookies)}`);
+        console.log(`Authenticated: ${req.isAuthenticated()}`);
+
         if (req.isAuthenticated()) {
-          console.log("========== AUTHENTICATED ==========");
-          passport.authorize(provider, authOptions)(req, res, next);
+          console.log(
+            `Using custom framework for ${provider} auth callback (account linking)`
+          );
+          customAuth.authorize(provider, authOptions)(req, res, next);
         } else {
-          console.log("========== NOT AUTHENTICATED ==========");
-
-          // Special handling for LinkedIn due to API changes
-          if (provider === "linkedin") {
-            console.log("Using custom LinkedIn callback handler");
-            const axios = require("axios");
-            const qs = require("querystring");
-            const User = require("../models/User");
-
-            // Extract the authorization code from the callback URL
-            const { code } = req.query;
-            if (!code) {
-              return res.redirect(config.urls.frontend + "/auth/failure");
-            }
-
-            // Exchange the code for an access token
-            const exchangeCodeForToken = async () => {
-              try {
-                console.log("Exchanging code for token...");
-                const tokenResponse = await axios.post(
-                  "https://www.linkedin.com/oauth/v2/accessToken",
-                  qs.stringify({
-                    grant_type: "authorization_code",
-                    code,
-                    redirect_uri: `${config.urls.base}/auth/linkedin/callback`,
-                    client_id: config.oauth.linkedin.clientID,
-                    client_secret: config.oauth.linkedin.clientSecret,
-                  }),
-                  {
-                    headers: {
-                      "Content-Type": "application/x-www-form-urlencoded",
-                    },
-                  }
-                );
-
-                const { access_token, expires_in } = tokenResponse.data;
-                console.log("Token received:", access_token ? "YES" : "NO");
-
-                // Fetch user profile from LinkedIn API
-                console.log("Fetching user profile from LinkedIn...");
-                const userInfoResponse = await axios.get(
-                  "https://api.linkedin.com/v2/userinfo",
-                  {
-                    headers: {
-                      Authorization: `Bearer ${access_token}`,
-                    },
-                  }
-                );
-
-                const profile = userInfoResponse.data;
-                console.log(
-                  "Profile data received:",
-                  JSON.stringify(profile, null, 2)
-                );
-
-                // Extract profile information
-                const linkedinId = profile.sub;
-                const email = profile.email;
-                const emailVerified = profile.email_verified || false;
-                const name =
-                  profile.name ||
-                  `${profile.given_name || ""} ${
-                    profile.family_name || ""
-                  }`.trim() ||
-                  "LinkedIn User";
-                const profilePhoto = profile.picture;
-
-                // Find or create user
-                let user = await User.findOne({
-                  "providers.provider": "linkedin",
-                  "providers.providerId": linkedinId,
-                });
-
-                if (user) {
-                  // Login the existing user
-                  req.login(user, (err) => {
-                    if (err) {
-                      console.error("Login error:", err);
-                      return res.redirect(
-                        config.urls.frontend + "/auth/failure"
-                      );
-                    }
-                    return res.redirect(config.urls.frontend + "/auth/success");
-                  });
-                  return;
-                }
-
-                // Check for existing user with same email
-                if (email && emailVerified) {
-                  user = await User.findOne({ email });
-
-                  if (user) {
-                    // Add LinkedIn provider to existing user
-                    user.providers.push({
-                      provider: "linkedin",
-                      providerId: linkedinId,
-                      displayName: name,
-                      email: email,
-                      profilePhoto: profilePhoto,
-                      accessToken: access_token,
-                      refreshToken: null,
-                      linkedAt: new Date(),
-                    });
-
-                    await user.save();
-
-                    // Login the user
-                    req.login(user, (err) => {
-                      if (err) {
-                        console.error("Login error:", err);
-                        return res.redirect(
-                          config.urls.frontend + "/auth/failure"
-                        );
-                      }
-                      return res.redirect(
-                        config.urls.frontend + "/auth/success"
-                      );
-                    });
-                    return;
-                  }
-                }
-
-                // Create new user
-                const newUser = new User({
-                  name: name,
-                  email: email || `user-${linkedinId}@linkedin.account`,
-                  emailVerified: emailVerified,
-                  providers: [
-                    {
-                      provider: "linkedin",
-                      providerId: linkedinId,
-                      displayName: name,
-                      email: email,
-                      profilePhoto: profilePhoto,
-                      accessToken: access_token,
-                      refreshToken: null,
-                      linkedAt: new Date(),
-                    },
-                  ],
-                });
-
-                await newUser.save();
-
-                // Login the new user
-                req.login(newUser, (err) => {
-                  if (err) {
-                    console.error("Login error:", err);
-                    return res.redirect(config.urls.frontend + "/auth/failure");
-                  }
-                  return res.redirect(config.urls.frontend + "/auth/success");
-                });
-              } catch (error) {
-                console.error("LinkedIn OAuth Error:", error.message);
-                if (error.response) {
-                  console.error("Response status:", error.response.status);
-                  console.error(
-                    "Response data:",
-                    JSON.stringify(error.response.data, null, 2)
-                  );
-                }
-                return res.redirect(config.urls.frontend + "/auth/failure");
-              }
-            };
-
-            // Execute the token exchange and profile fetch
-            exchangeCodeForToken();
-          } else {
-            passport.authenticate(provider, authOptions)(req, res, next);
-          }
+          console.log(
+            `Using custom framework for ${provider} auth callback (authentication)`
+          );
+          customAuth.authenticate(provider, authOptions)(req, res, next);
         }
       } catch (err) {
-        handleError(err, res);
+        console.error(`${provider} callback error:`, err);
+
+        // For critical security errors only, log out the user
+        if (err.status === 401) {
+          // Unauthorized
+          customAuth.logout(req, res, () => {
+            return res.redirect(
+              authOptions.failureRedirect ||
+                "/auth/failure?error=session_invalid"
+            );
+          });
+        } else {
+          // For other errors, keep user logged in but show error
+          return res.redirect(
+            authOptions.failureRedirect || `/auth/failure?error=${err.message}`
+          );
+        }
       }
     }
   );
@@ -364,10 +212,24 @@ router.post(
         failureRedirect: config.urls.frontend + "/auth/failure",
       };
 
+      // Log session information for debugging
+      console.log(
+        `POST callback received for Microsoft. Session ID: ${req.session.id}`
+      );
+      console.log(`Session cookie: ${JSON.stringify(req.cookies)}`);
+      console.log(`Authenticated: ${req.isAuthenticated()}`);
+      console.log(`Request body: ${JSON.stringify(req.body)}`);
+
       if (req.isAuthenticated()) {
-        passport.authorize("microsoft", authOptions)(req, res, next);
+        console.log(
+          "Using custom framework for Microsoft auth callback (POST)"
+        );
+        customAuth.authorize("microsoft", authOptions)(req, res, next);
       } else {
-        passport.authenticate("microsoft", authOptions)(req, res, next);
+        console.log(
+          "Using custom framework for Microsoft auth callback (POST)"
+        );
+        customAuth.authenticate("microsoft", authOptions)(req, res, next);
       }
     } catch (err) {
       handleError(err, res);
@@ -458,45 +320,17 @@ router.post("/logout", (req, res) => {
       return res.status(200).json({ message: "Not logged in" });
     }
 
-    // Check Passport version by examining function signature
-    // req.logout.length === 0 for Passport < 0.6.0
-    // req.logout.length === 1 for Passport >= 0.6.0
-    if (req.logout.length === 0) {
-      // Old version of Passport (< 0.6.0)
-      console.log("Using Passport < 0.6.0 logout method");
-      req.logout();
-      req.session.destroy((err) => {
-        if (err) {
-          console.error("Session destroy error:", err);
-          return res
-            .status(500)
-            .json({ error: "Session destroy error", message: err.message });
-        }
-        res.clearCookie("connect.sid", { path: "/" });
-        return res.status(200).json({ message: "Logged out successfully" });
-      });
-    } else {
-      // New version of Passport (>= 0.6.0)
-      console.log("Using Passport >= 0.6.0 logout method");
-      req.logout((err) => {
-        if (err) {
-          console.error("Logout error:", err);
-          return res
-            .status(500)
-            .json({ error: "Logout error", message: err.message });
-        }
-        req.session.destroy((err) => {
-          if (err) {
-            console.error("Session destroy error:", err);
-            return res
-              .status(500)
-              .json({ error: "Session destroy error", message: err.message });
-          }
-          res.clearCookie("connect.sid", { path: "/" });
-          return res.status(200).json({ message: "Logged out successfully" });
-        });
-      });
-    }
+    // Use our custom auth framework for logout
+    customAuth.logout(req, res, (err) => {
+      if (err) {
+        console.error("Logout error:", err);
+        return res
+          .status(500)
+          .json({ error: "Logout error", message: err.message });
+      }
+
+      return res.status(200).json({ message: "Logged out successfully" });
+    });
   } catch (err) {
     console.error("Unhandled logout error:", err);
     return res.status(500).json({
@@ -662,7 +496,9 @@ router.get("/link/:provider", (req, res, next) => {
       throw error;
     }
 
-    passport.authorize(provider, {
+    // Use our custom auth framework for authorization/linking
+    console.log(`Using custom framework to link ${provider} account`);
+    customAuth.authorize(provider, {
       scope: getProviderScope(provider),
       state: true,
     })(req, res, next);

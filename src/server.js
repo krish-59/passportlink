@@ -2,7 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const session = require("express-session");
 const cors = require("cors");
-const passport = require("./middleware/auth");
+const customAuth = require("./lib/auth");
 const config = require("./config");
 const authRoutes = require("./routes/auth");
 const { swaggerUi, swaggerDocs, swaggerUiOptions } = require("./utils/swagger");
@@ -41,9 +41,8 @@ app.use(
   })
 );
 
-// Passport middleware
-app.use(passport.initialize());
-app.use(passport.session());
+// Initialize custom authentication framework
+app.use(customAuth.initialize());
 
 // MongoDB connection
 mongoose
@@ -93,7 +92,7 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-const PORT = config.server.port;
+const PORT = config.server.port || 3000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   console.log(`Environment: ${config.server.env}`);

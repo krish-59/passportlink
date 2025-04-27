@@ -1,6 +1,6 @@
-# PassportLink Authentication Flows - Sequence Diagrams
+# Custom Authentication Framework - Sequence Diagrams
 
-This document outlines the various authentication flows supported by PassportLink and their sequence diagrams.
+This document outlines the various authentication flows supported by the custom authentication framework and their sequence diagrams.
 
 ## Initial Authentication Flow
 
